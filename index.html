@@ -19,9 +19,9 @@
 
     <div class="card">
         <h2>🚀 Основные действия</h2>
-        <p>Результаты команд будут приходить в чат с ботом.</p>
-        <button id="get-data-button">Показать аккаунты и прокси</button>
-        <button id="broadcast-button">Начать рассылку</button>
+        <p>Нажатие на кнопку закроет это окно и выполнит команду в боте.</p>
+        <button onclick="runCommand('get_data')">Показать аккаунты и прокси</button>
+        <button onclick="runCommand('start_broadcast')">Начать рассылку</button>
     </div>
 
     <div class="card">
@@ -37,26 +37,19 @@
         tg.ready();
         tg.expand();
 
-        function sendCommand(command, data = {}) {
-            tg.sendData(JSON.stringify({ command, ...data }));
-            tg.HapticFeedback.impactOccurred('light');
-            // Можно добавить небольшое уведомление
-            tg.showAlert(`Команда '${command}' отправлена боту.`);
+        // УКАЖИ ЗДЕСЬ ЮЗЕРНЕЙМ СВОЕГО БОТА
+        const BOT_USERNAME = "botfortestspy_bot";
+
+        function runCommand(command) {
+            tg.openTelegramLink(`https://t.me/${BOT_USERNAME}?start=${command}`);
         }
-
-        document.getElementById('get-data-button').addEventListener('click', () => {
-            sendCommand('get_full_state');
-        });
-
-        document.getElementById('broadcast-button').addEventListener('click', () => {
-            sendCommand('start_broadcast');
-        });
 
         function addProxy() {
             const input = document.getElementById('proxy-input');
             if (input.value) {
-                sendCommand('add_proxy', { url: input.value });
-                input.value = '';
+                // Кодируем URL, чтобы он безопасно передался в ссылке
+                const encodedUrl = btoa(input.value);
+                runCommand(`add_proxy_${encodedUrl}`);
             } else {
                 tg.showAlert('Поле ввода прокси не может быть пустым.');
             }
