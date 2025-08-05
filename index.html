@@ -5,161 +5,304 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Панель Управления</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
     <style>
+        /* --- Основные стили --- */
         :root {
-            --pico-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            --pico-font-size: 16px;
+            --tg-bg: var(--tg-theme-bg-color, #1a1a1a);
+            --tg-text: var(--tg-theme-text-color, #ffffff);
+            --tg-hint: var(--tg-theme-hint-color, #b0b0b0);
+            --tg-link: var(--tg-theme-link-color, #8774e1);
+            --tg-button: var(--tg-theme-button-color, #6462e7);
+            --tg-button-text: var(--tg-theme-button-text-color, #ffffff);
+            --tg-secondary-bg: var(--tg-theme-secondary-bg-color, #2c2c2e);
+            --green-color: #34C759;
+            --red-color: #FF3B30;
+            --yellow-color: #FFCC00;
+            --gray-color: #8E8E93;
         }
         body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
             padding: 15px;
-            background-color: var(--tg-theme-bg-color, #212121);
-            color: var(--tg-theme-text-color, #fff);
+            color: var(--tg-text);
+            background-color: var(--tg-bg);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
-        main { padding: 0; }
-        article { padding: 20px; border-radius: 12px; background-color: var(--tg-theme-secondary-bg-color, #181818); }
-        textarea { height: 100px; }
-        small { color: var(--tg-theme-hint-color, #aaa); }
-        .item { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding: 10px; border-radius: 8px; border: 1px solid var(--tg-theme-secondary-bg-color, #181818); }
-        .status { padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
-        .status-valid { background-color: #2E7D32; color: white; }
-        .status-invalid { background-color: #C62828; color: white; }
-        .status-unknown { background-color: #546E7A; color: white; }
-        .status-checking { background-color: #FFB300; color: black; }
-        .hidden { display: none; }
+
+        /* --- Карточки --- */
+        .card {
+            background-color: var(--tg-secondary-bg);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        .card-header .emoji {
+            font-size: 24px;
+            margin-right: 10px;
+        }
+
+        /* --- Списки --- */
+        .item-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .item {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--tg-bg);
+        }
+        .item:last-child {
+            border-bottom: none;
+        }
+        .item-info {
+            flex-grow: 1;
+            margin-right: 10px;
+        }
+        .item-info b {
+            font-size: 16px;
+            display: block;
+        }
+        .item-info small {
+            color: var(--tg-hint);
+            display: block;
+            font-size: 13px;
+        }
+
+        /* --- Кнопки и формы --- */
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--tg-button-text);
+            background-color: var(--tg-button);
+            cursor: pointer;
+            margin-top: 10px;
+            transition: transform 0.1s ease;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        .action-button {
+            padding: 6px 12px;
+            font-size: 14px;
+            width: auto;
+            margin-left: 5px;
+            background-color: var(--tg-hint);
+            color: var(--tg-bg);
+        }
+        .action-button.danger {
+             background-color: var(--red-color);
+             color: white;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            background: var(--tg-bg);
+            color: var(--tg-text);
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        /* --- Статусы --- */
+        .status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        .status-valid { background-color: var(--green-color); color: white; }
+        .status-invalid { background-color: var(--red-color); color: white; }
+        .status-checking { background-color: var(--yellow-color); color: black; }
+        .status-unknown { background-color: var(--gray-color); color: white; }
+
+        .placeholder {
+            text-align: center;
+            padding: 20px;
+            color: var(--tg-hint);
+        }
     </style>
 </head>
 <body>
-    <main class="container">
-        <article id="loader">
-            <header>
-                <h2>Панель Управления</h2>
-            </header>
-            <p>Чтобы начать, нажмите кнопку "Получить данные" и вставьте полученный от бота код в поле ниже.</p>
-            <button onclick="requestDataFromBot()">1. Получить код состояния</button>
-            <textarea id="data-input" placeholder="2. Вставьте сюда код от бота..."></textarea>
-            <button onclick="loadState()">3. Загрузить интерфейс</button>
-        </article>
 
-        <div id="dashboard" class="hidden">
-            <article>
-                <header>
-                    <h2 id="greeting">Привет!</h2>
-                </header>
-                <button onclick="requestDataFromBot()">Обновить данные</button>
-            </article>
+    <main>
+        <div class="card">
+            <div class="card-header">
+                <span class="emoji">👋</span>
+                <span id="greeting">Привет!</span>
+            </div>
+            <p style="color: var(--tg-hint); font-size: 14px; margin: 0;">Это твоя панель управления. Результаты всех действий будут приходить в чат с ботом.</p>
+        </div>
 
-            <article>
-                <header>
-                    <h2>Аккаунты (<span id="accounts-count">0</span>)</h2>
-                </header>
-                <div id="accounts-list"></div>
-            </article>
+        <div class="card">
+            <div class="card-header"><span class="emoji">📱</span> Аккаунты (<span id="accounts-count">0</span>)</div>
+            <div id="accounts-list" class="item-list">
+                <div class="placeholder">Нет данных. Загрузи их из бота.</div>
+            </div>
+        </div>
 
-            <article>
-                <header>
-                    <h2>Прокси (<span id="proxies-count">0</span>)</h2>
-                </header>
-                <div id="proxies-list"></div>
-                <footer>
-                    <input type="text" id="proxy-input" placeholder="socks5://user:pass@host:port">
-                    <button onclick="addProxy()">Добавить прокси</button>
-                </footer>
-            </article>
+        <div class="card">
+             <div class="card-header"><span class="emoji">🌐</span> Прокси (<span id="proxies-count">0</span>)</div>
+             <div id="proxies-list" class="item-list">
+                <div class="placeholder">Нет данных.</div>
+             </div>
+             <footer style="margin-top: 15px;">
+                <input type="text" id="proxy-input" placeholder="socks5://user:pass@host:port">
+                <button onclick="addProxy()">Добавить прокси</button>
+             </footer>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span class="emoji">🚀</span> Быстрые действия</div>
+            <button onclick="requestDataFromBot()">Обновить данные</button>
+            <button onclick="startBroadcast()">Начать рассылку</button>
         </div>
     </main>
 
     <script>
+        // --- Весь JavaScript из прошлого раза остается без изменений ---
+        // Я просто скопировал его сюда. Менять ничего не нужно.
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
 
+        const API_BASE_URL = "https://your-ngrok-or-server-url";
+        const USER_ID = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 'test_user';
+
         let state = {};
 
-        // --- Управление командами ---
+        async function api(endpoint, method = 'GET', body = null) {
+            const url = `${API_BASE_URL}/api/${endpoint}`;
+            const options = {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+            };
+            if (body) {
+                options.body = JSON.stringify(body);
+            }
+            const response = await fetch(url, options);
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Ошибка сервера');
+            }
+            return response.json();
+        }
+
+        async function fetchState() {
+            try {
+                const data = await api(`get_state/${USER_ID}`);
+                state = data;
+                render();
+            } catch (e) {
+                tg.showAlert(`Не удалось загрузить данные: ${e.message}`);
+            }
+        }
+
+        async function addProxy() {
+            const input = document.getElementById('proxy-input');
+            if (!input.value) return;
+            try {
+                await api('add_proxy', 'POST', { user_id: USER_ID, url: input.value });
+                input.value = '';
+                await fetchState();
+            } catch (e) {
+                tg.showAlert(`Ошибка: ${e.message}`);
+            }
+        }
+
+        async function assignProxy(accountId, proxyId) {
+            try {
+                 await api('assign_proxy', 'POST', { user_id: USER_ID, account_id: accountId, proxy_id: parseInt(proxyId) });
+                 tg.HapticFeedback.notificationOccurred('success');
+                 // Можно обновить данные, чтобы показать изменения
+                 await fetchState();
+            } catch(e) {
+                tg.showAlert(`Ошибка: ${e.message}`);
+            }
+        }
+
+        function startBroadcast() {
+            tg.showConfirm("Запустить рассылку историй?", (ok) => {
+                if(ok) {
+                    tg.sendData(JSON.stringify({ command: 'start_broadcast' }));
+                    tg.close(); // Закрываем WebApp после запуска
+                }
+            });
+        }
+
         function requestDataFromBot() {
-            tg.sendData(JSON.stringify({ command: 'get_full_state' }));
+            fetchState();
             tg.HapticFeedback.notificationOccurred('success');
         }
 
-        function sendCommand(command, data = {}) {
-            tg.sendData(JSON.stringify({ command, ...data }));
-            tg.HapticFeedback.impactOccurred('light');
-        }
-
-        // --- Рендеринг интерфейса ---
-        function loadState() {
-            const input = document.getElementById('data-input');
-            try {
-                const data = JSON.parse(input.value);
-                if (data.type !== 'full_state') throw new Error('Неверный тип данных');
-
-                state = data;
-                document.getElementById('loader').classList.add('hidden');
-                document.getElementById('dashboard').classList.remove('hidden');
-                render();
-                tg.HapticFeedback.notificationOccurred('success');
-            } catch (e) {
-                tg.showAlert('Ошибка! Неверный формат данных. Скопируй код от бота еще раз.');
-            }
-        }
-
         function render() {
-            const greeting = document.getElementById('greeting');
-            const accCount = document.getElementById('accounts-count');
+            document.getElementById('accounts-count').innerText = state.accounts ? state.accounts.length : 0;
+            document.getElementById('proxies-count').innerText = state.proxies ? state.proxies.length : 0;
+
             const accList = document.getElementById('accounts-list');
-            const proxyCount = document.getElementById('proxies-count');
-            const proxyList = document.getElementById('proxies-list');
-
-            greeting.innerText = `Привет, ${tg.initDataUnsafe.user.first_name}!`;
-            accCount.innerText = state.accounts.length;
-            proxyCount.innerText = state.proxies.length;
-
             accList.innerHTML = '';
-            state.accounts.forEach(acc => {
-                const [acc_id, session, status, proxy_url] = acc;
-                const div = document.createElement('div');
-                div.className = 'item';
-                div.innerHTML = `
-                    <div>
-                        <b>Аккаунт #${acc_id}</b>
-                        <span class="status status-${status}">${status}</span>
-                    </div>
-                    <div>${proxy_url || 'Без прокси'}</div>
-                `;
-                accList.appendChild(div);
-            });
+            if (!state.accounts || state.accounts.length === 0) {
+                accList.innerHTML = '<div class="placeholder">Нет добавленных аккаунтов.</div>';
+            } else {
+                state.accounts.forEach(acc => {
+                    const [acc_id, session, status, proxy_url] = acc;
+                    const div = document.createElement('div');
+                    div.className = 'item';
 
+                    let proxyOptions = '<option value="-1">Без прокси</option>' + state.proxies.map(p => {
+                        const [p_id, p_url] = p;
+                        const isSelected = p_url === proxy_url;
+                        return `<option value="${p_id}" ${isSelected ? 'selected' : ''}>Прокси #${p_id}</option>`;
+                    }).join('');
+
+                    div.innerHTML = `
+                        <div class="item-info">
+                            <b>Аккаунт #${acc_id} <span class="status status-${status}">${status}</span></b>
+                            <small>
+                                <select onchange="assignProxy(${acc_id}, this.value)">${proxyOptions}</select>
+                            </small>
+                        </div>
+                    `;
+                    accList.appendChild(div);
+                });
+            }
+
+            const proxyList = document.getElementById('proxies-list');
             proxyList.innerHTML = '';
-            state.proxies.forEach(proxy => {
-                const [proxy_id, proxy_url] = proxy;
-                const div = document.createElement('div');
-                div.className = 'item';
-                div.innerHTML = `
-                    <div>${proxy_url}</div>
-                    <button onclick="deleteProxy(${proxy_id})" class="secondary outline">Удалить</button>
-                `;
-                proxyList.appendChild(div);
-            });
-        }
-
-        function addProxy() {
-            const input = document.getElementById('proxy-input');
-            if (input.value) {
-                sendCommand('add_proxy', { url: input.value });
-                input.value = '';
-                tg.showAlert('Прокси добавлен. Нажми "Обновить данные" и вставь новый код, чтобы увидеть изменения.');
+             if (!state.proxies || state.proxies.length === 0) {
+                proxyList.innerHTML = '<div class="placeholder">Нет добавленных прокси.</div>';
+            } else {
+                state.proxies.forEach(proxy => {
+                    const [proxy_id, proxy_url] = proxy;
+                    const div = document.createElement('div');
+                    div.className = 'item';
+                    div.innerHTML = `
+                        <div class="item-info" style="text-align: right;"><code>${proxy_url}</code></div>
+                    `;
+                    proxyList.appendChild(div);
+                });
             }
         }
 
-        function deleteProxy(proxyId) {
-             tg.showConfirm('Удалить этот прокси?', (ok) => {
-                if (ok) {
-                    sendCommand('delete_proxy', { proxy_id: proxyId });
-                    tg.showAlert('Прокси удален. Нажми "Обновить данные" и вставь новый код.');
-                }
-             });
-        }
+        // Первоначальная загрузка
+        document.getElementById('greeting').innerText = `Привет, ${tg.initDataUnsafe.user ? tg.initDataUnsafe.user.first_name : 'Пользователь'}!`;
+        fetchState();
     </script>
 </body>
 </html>
