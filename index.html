@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Bot WebApp</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --tg-bg: var(--tg-theme-bg-color, #212121);
+            --tg-text: var(--tg-theme-text-color, #ffffff);
+            --tg-hint: var(--tg-theme-hint-color, #aaaaaa);
+            --tg-link: var(--tg-theme-link-color, #8774e1);
+            --tg-button: var(--tg-theme-button-color, #8774e1);
+            --tg-button-text: var(--tg-theme-button-text-color, #ffffff);
+            --tg-secondary-bg: var(--tg-theme-secondary-bg-color, #181818);
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 15px;
+            color: var(--tg-text);
+            background-color: var(--tg-bg);
+        }
+        .card {
+            background-color: var(--tg-secondary-bg);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        h2 { margin-top: 0; font-size: 18px; }
+        p { color: var(--tg-hint); font-size: 14px; margin-top: 5px; }
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--tg-button-text);
+            background-color: var(--tg-button);
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .button-danger { background-color: #e53935; }
+        .data-placeholder { font-style: italic; color: var(--tg-hint); }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>📊 Статистика</h2>
+        <p>Подключено аккаунтов: <span id="accounts-count" class="data-placeholder">загрузка...</span></p>
+        <p>Собрано аудитории: <span id="audience-count" class="data-placeholder">загрузка...</span></p>
+        <button id="refresh-button">Обновить данные</button>
+    </div>
+
+    <div class="card">
+        <h2>📢 Новая рассылка</h2>
+        <p>Запустить новую рассылку историй по собранной аудитории.</p>
+        <button id="broadcast-button">Начать рассылку</button>
+    </div>
+
+    <div class="card">
+        <h2>👥 Управление аудиторией</h2>
+        <p>Скачать или очистить текущий список пользователей.</p>
+        <button id="download-button">Скачать список</button>
+        <button id="clear-button" class="button-danger">Очистить список</button>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        // Функция для отправки данных боту
+        function sendCommand(command, data = {}) {
+            const payload = JSON.stringify({ command, ...data });
+            tg.sendData(payload);
+        }
+
+        // Обработчики кнопок
+        document.getElementById('refresh-button').addEventListener('click', () => {
+            sendCommand('get_stats');
+            tg.HapticFeedback.impactOccurred('light');
+        });
+
+        document.getElementById('broadcast-button').addEventListener('click', () => {
+            tg.showConfirm("Начать новую рассылку историй?", (confirmed) => {
+                if (confirmed) {
+                    sendCommand('start_broadcast');
+                }
+            });
+        });
+
+        document.getElementById('download-button').addEventListener('click', () => {
+            sendCommand('download_audience');
+            tg.HapticFeedback.impactOccurred('light');
+        });
+
+        document.getElementById('clear-button').addEventListener('click', () => {
+            tg.showConfirm("Вы уверены, что хотите очистить весь список аудитории? Это действие необратимо.", (confirmed) => {
+                if (confirmed) {
+                    sendCommand('clear_audience');
+                }
+            });
+        });
+
+        // --- Обработка данных от бота ---
+        // (Этот функционал мы добавим позже, когда бот научится присылать данные в WebApp)
+        // tg.onEvent('viewportChanged', (isStable) => {
+        //     if (isStable) {
+        //         sendCommand('get_stats');
+        //     }
+        // });
+
+        // Запрашиваем статистику при первой загрузке
+        sendCommand('get_stats');
+
+    </script>
+
+</body>
+</html>
