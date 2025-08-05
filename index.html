@@ -3,58 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Bot Control Panel</title>
+    <title>Панель Управления</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 15px; color: var(--tg-theme-text-color, #fff); background-color: var(--tg-theme-bg-color, #212121); }
-        .card { background-color: var(--tg-theme-secondary-bg-color, #181818); border-radius: 12px; padding: 15px; margin-bottom: 15px; text-align: center; }
-        h2 { margin-top: 0; font-size: 18px; }
-        p { color: var(--tg-theme-hint-color, #aaa); font-size: 14px; margin-top: 5px; }
-        button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; color: var(--tg-theme-button-text-color, #fff); background-color: var(--tg-theme-button-color, #8774e1); cursor: pointer; margin-top: 10px; }
-        .form-group { margin-bottom: 15px; }
-        .form-group input { width: 100%; padding: 10px; border-radius: 5px; border: 1px solid var(--tg-theme-hint-color, #aaa); background: var(--tg-theme-bg-color, #212121); color: var(--tg-theme-text-color, #fff); box-sizing: border-box; }
+        :root {
+            --pico-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            --pico-font-size: 16px;
+        }
+        body {
+            padding: 15px;
+            background-color: var(--tg-theme-bg-color, #212121);
+            color: var(--tg-theme-text-color, #fff);
+        }
+        main { padding: 0; }
+        article { padding: 20px; border-radius: 12px; background-color: var(--tg-theme-secondary-bg-color, #181818); }
+        textarea { height: 100px; }
+        small { color: var(--tg-theme-hint-color, #aaa); }
+        .item { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding: 10px; border-radius: 8px; border: 1px solid var(--tg-theme-secondary-bg-color, #181818); }
+        .status { padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+        .status-valid { background-color: #2E7D32; color: white; }
+        .status-invalid { background-color: #C62828; color: white; }
+        .status-unknown { background-color: #546E7A; color: white; }
+        .status-checking { background-color: #FFB300; color: black; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
+    <main class="container">
+        <article id="loader">
+            <header>
+                <h2>Панель Управления</h2>
+            </header>
+            <p>Чтобы начать, нажмите кнопку "Получить данные" и вставьте полученный от бота код в поле ниже.</p>
+            <button onclick="requestDataFromBot()">1. Получить код состояния</button>
+            <textarea id="data-input" placeholder="2. Вставьте сюда код от бота..."></textarea>
+            <button onclick="loadState()">3. Загрузить интерфейс</button>
+        </article>
 
-    <div class="card">
-        <h2>🚀 Основные действия</h2>
-        <p>Нажатие на кнопку закроет это окно и выполнит команду в боте.</p>
-        <button onclick="runCommand('get_data')">Показать аккаунты и прокси</button>
-        <button onclick="runCommand('start_broadcast')">Начать рассылку</button>
-    </div>
+        <div id="dashboard" class="hidden">
+            <article>
+                <header>
+                    <h2 id="greeting">Привет!</h2>
+                </header>
+                <button onclick="requestDataFromBot()">Обновить данные</button>
+            </article>
 
-    <div class="card">
-        <h2>📝 Управление прокси</h2>
-        <div class="form-group">
-            <input type="text" id="proxy-input" placeholder="socks5://user:pass@host:port">
-            <button onclick="addProxy()">Добавить прокси</button>
+            <article>
+                <header>
+                    <h2>Аккаунты (<span id="accounts-count">0</span>)</h2>
+                </header>
+                <div id="accounts-list"></div>
+            </article>
+
+            <article>
+                <header>
+                    <h2>Прокси (<span id="proxies-count">0</span>)</h2>
+                </header>
+                <div id="proxies-list"></div>
+                <footer>
+                    <input type="text" id="proxy-input" placeholder="socks5://user:pass@host:port">
+                    <button onclick="addProxy()">Добавить прокси</button>
+                </footer>
+            </article>
         </div>
-    </div>
+    </main>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
 
-        // УКАЖИ ЗДЕСЬ ЮЗЕРНЕЙМ СВОЕГО БОТА
-        const BOT_USERNAME = "botfortestspy_bot";
+        let state = {};
 
-        function runCommand(command) {
-            tg.openTelegramLink(`https://t.me/${BOT_USERNAME}?start=${command}`);
+        // --- Управление командами ---
+        function requestDataFromBot() {
+            tg.sendData(JSON.stringify({ command: 'get_full_state' }));
+            tg.HapticFeedback.notificationOccurred('success');
+        }
+
+        function sendCommand(command, data = {}) {
+            tg.sendData(JSON.stringify({ command, ...data }));
+            tg.HapticFeedback.impactOccurred('light');
+        }
+
+        // --- Рендеринг интерфейса ---
+        function loadState() {
+            const input = document.getElementById('data-input');
+            try {
+                const data = JSON.parse(input.value);
+                if (data.type !== 'full_state') throw new Error('Неверный тип данных');
+
+                state = data;
+                document.getElementById('loader').classList.add('hidden');
+                document.getElementById('dashboard').classList.remove('hidden');
+                render();
+                tg.HapticFeedback.notificationOccurred('success');
+            } catch (e) {
+                tg.showAlert('Ошибка! Неверный формат данных. Скопируй код от бота еще раз.');
+            }
+        }
+
+        function render() {
+            const greeting = document.getElementById('greeting');
+            const accCount = document.getElementById('accounts-count');
+            const accList = document.getElementById('accounts-list');
+            const proxyCount = document.getElementById('proxies-count');
+            const proxyList = document.getElementById('proxies-list');
+
+            greeting.innerText = `Привет, ${tg.initDataUnsafe.user.first_name}!`;
+            accCount.innerText = state.accounts.length;
+            proxyCount.innerText = state.proxies.length;
+
+            accList.innerHTML = '';
+            state.accounts.forEach(acc => {
+                const [acc_id, session, status, proxy_url] = acc;
+                const div = document.createElement('div');
+                div.className = 'item';
+                div.innerHTML = `
+                    <div>
+                        <b>Аккаунт #${acc_id}</b>
+                        <span class="status status-${status}">${status}</span>
+                    </div>
+                    <div>${proxy_url || 'Без прокси'}</div>
+                `;
+                accList.appendChild(div);
+            });
+
+            proxyList.innerHTML = '';
+            state.proxies.forEach(proxy => {
+                const [proxy_id, proxy_url] = proxy;
+                const div = document.createElement('div');
+                div.className = 'item';
+                div.innerHTML = `
+                    <div>${proxy_url}</div>
+                    <button onclick="deleteProxy(${proxy_id})" class="secondary outline">Удалить</button>
+                `;
+                proxyList.appendChild(div);
+            });
         }
 
         function addProxy() {
             const input = document.getElementById('proxy-input');
             if (input.value) {
-                // Кодируем URL, чтобы он безопасно передался в ссылке
-                const encodedUrl = btoa(input.value);
-                runCommand(`add_proxy_${encodedUrl}`);
-            } else {
-                tg.showAlert('Поле ввода прокси не может быть пустым.');
+                sendCommand('add_proxy', { url: input.value });
+                input.value = '';
+                tg.showAlert('Прокси добавлен. Нажми "Обновить данные" и вставь новый код, чтобы увидеть изменения.');
             }
         }
-    </script>
 
+        function deleteProxy(proxyId) {
+             tg.showConfirm('Удалить этот прокси?', (ok) => {
+                if (ok) {
+                    sendCommand('delete_proxy', { proxy_id: proxyId });
+                    tg.showAlert('Прокси удален. Нажми "Обновить данные" и вставь новый код.');
+                }
+             });
+        }
+    </script>
 </body>
 </html>
