@@ -6,152 +6,61 @@
     <title>Bot Control Panel</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root { /* Цвета из темы Telegram */ }
-        body { font-family: sans-serif; background-color: var(--tg-theme-bg-color, #212121); color: var(--tg-theme-text-color, #fff); margin: 0; padding: 15px; }
-        .tab-nav { display: flex; border-bottom: 1px solid var(--tg-theme-secondary-bg-color, #333); }
-        .tab-button { flex: 1; padding: 15px; text-align: center; background: none; border: none; color: var(--tg-theme-hint-color, #aaa); font-size: 16px; font-weight: bold; cursor: pointer; }
-        .tab-button.active { color: var(--tg-theme-link-color, #8774e1); border-bottom: 2px solid var(--tg-theme-link-color, #8774e1); }
-        .tab-content { display: none; padding-top: 20px; }
-        .tab-content.active { display: block; }
-        .item-list { list-style: none; padding: 0; margin: 0; }
-        .item { display: flex; align-items: center; background-color: var(--tg-theme-secondary-bg-color, #181818); padding: 10px 15px; border-radius: 8px; margin-bottom: 10px; }
-        .item-info { flex-grow: 1; }
-        .item-info b { font-size: 16px; }
-        .item-info small { color: var(--tg-theme-hint-color, #aaa); display: block; }
-        .item-actions button { background: none; border: 1px solid var(--tg-theme-hint-color, #aaa); color: var(--tg-theme-text-color, #fff); padding: 5px 10px; border-radius: 5px; margin-left: 5px; cursor: pointer; }
-        .item-actions button.danger { border-color: #e53935; color: #e53935; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 15px; color: var(--tg-theme-text-color, #fff); background-color: var(--tg-theme-bg-color, #212121); }
+        .card { background-color: var(--tg-theme-secondary-bg-color, #181818); border-radius: 12px; padding: 15px; margin-bottom: 15px; text-align: center; }
+        h2 { margin-top: 0; font-size: 18px; }
+        p { color: var(--tg-theme-hint-color, #aaa); font-size: 14px; margin-top: 5px; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; color: var(--tg-theme-button-text-color, #fff); background-color: var(--tg-theme-button-color, #8774e1); cursor: pointer; margin-top: 10px; }
         .form-group { margin-bottom: 15px; }
-        .form-group input, .form-group select { width: 100%; padding: 10px; border-radius: 5px; border: 1px solid var(--tg-theme-hint-color, #aaa); background: var(--tg-theme-bg-color, #212121); color: var(--tg-theme-text-color, #fff); box-sizing: border-box; }
-        .main-button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; color: var(--tg-theme-button-text-color, #fff); background-color: var(--tg-theme-button-color, #8774e1); cursor: pointer; margin-top: 10px; }
-        .status { padding: 2px 6px; border-radius: 4px; font-size: 12px; }
-        .status-valid { background-color: #2E7D32; color: white; }
-        .status-invalid { background-color: #C62828; color: white; }
-        .status-unknown { background-color: #546E7A; color: white; }
+        .form-group input { width: 100%; padding: 10px; border-radius: 5px; border: 1px solid var(--tg-theme-hint-color, #aaa); background: var(--tg-theme-bg-color, #212121); color: var(--tg-theme-text-color, #fff); box-sizing: border-box; }
     </style>
 </head>
 <body>
 
-    <div class="tab-nav">
-        <button class="tab-button active" onclick="openTab('accounts')">Аккаунты</button>
-        <button class="tab-button" onclick="openTab('proxies')">Прокси</button>
+    <div class="card">
+        <h2>🚀 Основные действия</h2>
+        <p>Результаты команд будут приходить в чат с ботом.</p>
+        <button id="get-data-button">Показать аккаунты и прокси</button>
+        <button id="broadcast-button">Начать рассылку</button>
     </div>
 
-    <div id="accounts" class="tab-content active">
-        <h2>Управление аккаунтами</h2>
-        <ul id="accounts-list" class="item-list"><p>Загрузка...</p></ul>
-    </div>
-
-    <div id="proxies" class="tab-content">
-        <h2>Управление прокси</h2>
+    <div class="card">
+        <h2>📝 Управление прокси</h2>
         <div class="form-group">
             <input type="text" id="proxy-input" placeholder="socks5://user:pass@host:port">
-            <button class="main-button" onclick="addProxy()">Добавить прокси</button>
+            <button onclick="addProxy()">Добавить прокси</button>
         </div>
-        <ul id="proxies-list" class="item-list"><p>Загрузка...</p></ul>
     </div>
-
+    
     <script>
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
 
-        let state = { accounts: [], proxies: [] };
-
-        function openTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(tabName).classList.add('active');
-            event.currentTarget.classList.add('active');
-        }
-
         function sendCommand(command, data = {}) {
             tg.sendData(JSON.stringify({ command, ...data }));
-        }
-
-        function render() {
-            // Рендер аккаунтов
-            const accList = document.getElementById('accounts-list');
-            accList.innerHTML = '';
-            if (state.accounts.length === 0) {
-                accList.innerHTML = '<p>Нет добавленных аккаунтов.</p>';
-            }
-            state.accounts.forEach(acc => {
-                const li = document.createElement('li');
-                li.className = 'item';
-
-                let statusClass = 'status-unknown';
-                if (acc.status === 'valid') statusClass = 'status-valid';
-                if (acc.status === 'invalid') statusClass = 'status-invalid';
-
-                let proxyOptions = '<option value="-1">Без прокси</option>' + state.proxies.map(p => `<option value="${p.id}" ${p.id == acc.proxy_id ? 'selected' : ''}>${p.url}</option>`).join('');
-
-                li.innerHTML = `
-                    <div class="item-info">
-                        <b>Аккаунт #${acc.id}</b> <span class="status ${statusClass}">${acc.status}</span>
-                        <small>Прокси: <select onchange="assignProxy(${acc.id}, this.value)">${proxyOptions}</select></small>
-                    </div>
-                    <div class="item-actions">
-                        <button onclick="checkAccount(${acc.id})">Проверить</button>
-                        <button class="danger" onclick="deleteAccount(${acc.id})">Удалить</button>
-                    </div>
-                `;
-                accList.appendChild(li);
-            });
-
-            // Рендер прокси
-            const proxyList = document.getElementById('proxies-list');
-            proxyList.innerHTML = '';
-             if (state.proxies.length === 0) {
-                proxyList.innerHTML = '<p>Нет добавленных прокси.</p>';
-            }
-            state.proxies.forEach(p => {
-                const li = document.createElement('li');
-                li.className = 'item';
-                li.innerHTML = `
-                    <div class="item-info"><b>${p.url}</b></div>
-                    <div class="item-actions"><button class="danger" onclick="deleteProxy(${p.id})">Удалить</button></div>
-                `;
-                proxyList.appendChild(li);
-            });
-        }
-
-        // Функции-команды
-        function addProxy() {
-            const input = document.getElementById('proxy-input');
-            if (!input.value) return;
-            sendCommand('add_proxy', { url: input.value });
-            input.value = '';
             tg.HapticFeedback.impactOccurred('light');
-        }
-        function deleteProxy(id) {
-            tg.showConfirm(`Удалить прокси #${id}?`, (ok) => ok && sendCommand('delete_proxy', { proxy_id: id }));
-        }
-        function checkAccount(id) {
-            sendCommand('check_account', { account_id: id });
-            tg.HapticFeedback.notificationOccurred('success');
-            tg.showAlert('Запущена проверка аккаунта #${id}. Результат обновится через несколько секунд.');
-        }
-        function deleteAccount(id) {
-            tg.showConfirm(`Удалить аккаунт #${id}?`, (ok) => ok && sendCommand('delete_account', { account_id: id }));
-        }
-        function assignProxy(accountId, proxyId) {
-            sendCommand('assign_proxy', { account_id: accountId, proxy_id: parseInt(proxyId) });
-            tg.HapticFeedback.impactOccurred('light');
+            // Можно добавить небольшое уведомление
+            tg.showAlert(`Команда '${command}' отправлена боту.`);
         }
 
-        // Получение данных от бота
-        tg.onEvent('web_app_data_received', (data) => {
-            const jsonData = JSON.parse(data.data);
-            if (jsonData.type === 'full_state') {
-                state.accounts = jsonData.accounts.map(a => ({ id: a[0], session: a[1], status: a[2], proxy_id: a[3] }));
-                state.proxies = jsonData.proxies.map(p => ({ id: p[0], url: p[1] }));
-                render();
-            }
+        document.getElementById('get-data-button').addEventListener('click', () => {
+            sendCommand('get_full_state');
         });
 
-        // Запрашиваем все данные при загрузке
-        sendCommand('get_full_state');
+        document.getElementById('broadcast-button').addEventListener('click', () => {
+            sendCommand('start_broadcast');
+        });
 
+        function addProxy() {
+            const input = document.getElementById('proxy-input');
+            if (input.value) {
+                sendCommand('add_proxy', { url: input.value });
+                input.value = '';
+            } else {
+                tg.showAlert('Поле ввода прокси не может быть пустым.');
+            }
+        }
     </script>
 
 </body>
